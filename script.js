@@ -1,9 +1,11 @@
 (function () {
   'use strict';
   var doc = document, root = doc.documentElement;
+  root.classList.add('js');
   var T = window.__T || { lv: doc.title, ru: doc.title };
   var each = function (sel, fn) { Array.prototype.forEach.call(doc.querySelectorAll(sel), fn); };
   var isRu = function () { return root.classList.contains('ru'); };
+  var hdr = doc.getElementById('hdr'), burger = hdr.querySelector('.burger'), mnav = doc.getElementById('mnav');
 
   /* language: ?lang=ru opens Russian; both versions are in the page, attributes are swapped here */
   var ATTRS = ['alt', 'aria-label', 'placeholder', 'content'];
@@ -34,15 +36,15 @@
         var u = new URL(location.href);
         if (ru) u.searchParams.set('lang', 'ru'); else u.searchParams.delete('lang');
         history.replaceState(null, '', u.pathname + u.search + u.hash);
-      } catch (e) { /* file:// or old browser: the class switch is enough */ }
+      } catch (e) { /* file:// or an old browser: the class switch is enough */ }
     }
     setMenu(hdr.classList.contains('open'));
   }
 
   /* mobile menu */
-  var hdr = doc.getElementById('hdr'), burger = hdr.querySelector('.burger'), mnav = doc.getElementById('mnav');
   function setMenu(open) {
     hdr.classList.toggle('open', open);
+    root.classList.toggle('menu-open', open);
     burger.setAttribute('aria-expanded', open ? 'true' : 'false');
     burger.setAttribute('aria-label', open ? (isRu() ? 'Закрыть меню' : 'Aizvērt izvēlni') : (isRu() ? 'Меню' : 'Izvēlne'));
   }
@@ -58,14 +60,23 @@
     e.preventDefault();
     setLang(a.hasAttribute('data-set-lang') ? a.getAttribute('data-set-lang') : (isRu() ? 'lv' : 'ru'), true);
   });
-  window.addEventListener('resize', function () { if (window.innerWidth >= 1000 && hdr.classList.contains('open')) setMenu(false); });
+  window.addEventListener('resize', function () { if (window.innerWidth >= 1100 && hdr.classList.contains('open')) setMenu(false); });
 
-  /* header line once the page is scrolled */
-  var onScroll = function () { hdr.classList.toggle('sc', window.scrollY > 8); };
+  /* header turns solid once the page is scrolled */
+  var onScroll = function () { hdr.classList.toggle('solid', window.scrollY > 12); };
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
   setLang(isRu() ? 'ru' : 'lv', false);
+
+  /* reveal on scroll (the steps wire draws itself when the list comes in) */
+  var items = [].slice.call(doc.querySelectorAll('.rv'));
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (en) {
+      en.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    items.forEach(function (el) { io.observe(el); });
+  } else { items.forEach(function (el) { el.classList.add('in'); }); }
 
   /* enquiry form -> the visitor's mail program (window.__noNav lets a test read the address without opening it) */
   var form = doc.getElementById('cform');
